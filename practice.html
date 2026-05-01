@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guitar Note Practice</title>
+  <style>
+    /* ---------- Page-level styles ---------- */
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #fafaf7;
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 500;
+      margin: 0 0 1.5rem;
+      text-align: center;
+    }
+
+    /* ---------- Note display ---------- */
+    #note-display {
+      background: #efede5;
+      border-radius: 12px;
+      padding: 3rem 1rem;
+      text-align: center;
+      margin-bottom: 1.5rem;
+      min-height: 180px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #note {
+      font-size: 96px;
+      font-weight: 500;
+      letter-spacing: -2px;
+    }
+
+    /* ---------- Controls ---------- */
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 1rem;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .info-row .val {
+      color: #1a1a1a;
+      font-weight: 500;
+    }
+
+    label {
+      font-size: 14px;
+      color: #666;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: #d3d1c7;
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      cursor: pointer;
+      border: none;
+    }
+
+    .readout {
+      font-size: 14px;
+      font-weight: 500;
+      min-width: 32px;
+      text-align: right;
+    }
+
+    button {
+      height: 44px;
+      border: 0.5px solid #999;
+      background: white;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.1s;
+    }
+
+    button:hover { background: #f0f0f0; }
+    button:active { transform: scale(0.98); }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1rem;
+    }
+
+    #toggle { flex: 1; }
+    #reset { padding: 0 16px; }
+
+    /* ---------- Settings ---------- */
+    details summary {
+      font-size: 13px;
+      color: #666;
+      cursor: pointer;
+      user-select: none;
+      padding: 8px 0;
+    }
+
+    .settings {
+      margin-top: 8px;
+      padding: 12px;
+      background: #efede5;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .settings label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      color: #1a1a1a;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Guitar note practice</h1>
+
+    <div id="note-display">
+      <span id="note">—</span>
+    </div>
+
+    <div class="row">
+      <label style="min-width: 44px;">BPM</label>
+      <input type="range" min="10" max="200" value="45" step="1" id="bpm" />
+      <span id="bpm-out" class="readout">45</span>
+    </div>
+
+    <div class="info-row">
+      <span>Interval: <span id="interval-out" class="val">1.33s</span></span>
+      <span>Beat <span id="beat-out" class="val">0</span></span>
+    </div>
+
+    <div class="btn-row">
+      <button id="toggle">Start</button>
+      <button id="reset">Reset</button>
+    </div>
+
+    <details>
+      <summary>Settings</summary>
+      <div class="settings">
+        <label>
+          <input type="checkbox" id="use-flats" />
+          <span>Use flats (B♭) instead of sharps (A♯)</span>
+        </label>
+        <label>
+          <input type="checkbox" id="no-repeat" checked />
+          <span>Avoid immediate repeats</span>
+        </label>
+        <label>
+          <input type="checkbox" id="click-sound" checked />
+          <span>Metronome click</span>
+        </label>
+      </div>
+    </details>
+  </div>
+
+  <script>
+    (function() {
+      const sharpNotes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+      const flatNotes  = ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'];
+
+      const noteEl = document.getElementById('note');
+      const bpmEl = document.getElementById('bpm');
+      const bpmOut = document.getElementById('bpm-out');
+      const intervalOut = document.getElementById('interval-out');
+      const beatOut = document.getElementById('beat-out');
+      const toggleBtn = document.getElementById('toggle');
+      const resetBtn = document.getElementById('reset');
+      const useFlats = document.getElementById('use-flats');
+      const noRepeat = document.getElementById('no-repeat');
+      const clickSound = document.getElementById('click-sound');
+
+      let intervalId = null;
+      let running = false;
+      let beat = 0;
+      let lastIdx = -1;
+      let audioCtx = null;
+
+      function getInterval() {
+        return 60 / parseInt(bpmEl.value, 10);
+      }
+
+      function updateBpmReadout() {
+        bpmOut.textContent = bpmEl.value;
+        intervalOut.textContent = getInterval().toFixed(2) + 's';
+      }
+
+      function pickNote() {
+        const notes = useFlats.checked ? flatNotes : sharpNotes;
+        let idx;
+        if (noRepeat.checked && lastIdx >= 0) {
+          do { idx = Math.floor(Math.random() * 12); } while (idx === lastIdx);
+        } else {
+          idx = Math.floor(Math.random() * 12);
+        }
+        lastIdx = idx;
+        return notes[idx];
+      }
+
+      function playClick() {
+        if (!clickSound.checked) return;
+        try {
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.frequency.value = 1000;
+          osc.type = 'square';
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.05);
+        } catch (e) {}
+      }
+
+      function tick() {
+        beat++;
+        beatOut.textContent = beat;
+        noteEl.textContent = pickNote();
+        playClick();
+      }
+
+      function start() {
+        if (running) return;
+        running = true;
+        toggleBtn.textContent = 'Stop';
+        tick();
+        intervalId = setInterval(tick, getInterval() * 1000);
+      }
+
+      function stop() {
+        running = false;
+        toggleBtn.textContent = 'Start';
+        if (intervalId) { clearInterval(intervalId); intervalId = null; }
+      }
+
+      function reset() {
+        stop();
+        beat = 0;
+        lastIdx = -1;
+        beatOut.textContent = '0';
+        noteEl.textContent = '—';
+      }
+
+      bpmEl.addEventListener('input', function() {
+        updateBpmReadout();
+        if (running) {
+          clearInterval(intervalId);
+          intervalId = setInterval(tick, getInterval() * 1000);
+        }
+      });
+
+      toggleBtn.addEventListener('click', function() {
+        if (running) stop(); else start();
+      });
+
+      resetBtn.addEventListener('click', reset);
+
+      updateBpmReadout();
+    })();
+  </script>
+</body>
+</html>
